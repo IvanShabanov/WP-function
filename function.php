@@ -2,7 +2,7 @@
    /****** Показать потомков страницы ************
     * $attr=array(
     *   'id' - id родителя 
-    *   'template' - шаблон файл в папке templates файл content-...php 
+    *   'template' - шаблон файл в папке templates файл .php 
     *                   в файле foreach для массива pages
     *   'numberposts' - кол-во постов/страниц, по умолчанию 999
     *   'orderby' - поле сортировки, по умолчанию menu_order
@@ -52,7 +52,7 @@
             
             $pages = get_posts($filter);
             ob_start();
-            include('templates/content-'.$template.'.php');
+            include('templates/'.$template.'.php');
             $result = ob_get_contents();
             ob_end_clean();
         };
