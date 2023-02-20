@@ -20,8 +20,72 @@
         define('IS_use_catalog_page', false);
     };
 
+
+    /*********************************** */
+    /* SVG */
+    add_filter( 'upload_mimes', 'svg_upload_allow' );
+
+    /* Добавляет SVG в список разрешенных для загрузки файлов. */
+    function svg_upload_allow( $mimes ) {
+        $mimes['svg']  = 'image/svg+xml';
+
+        return $mimes;
+    }
+
+    add_filter( 'wp_check_filetype_and_ext', 'fix_svg_mime_type', 10, 5 );
+
+    /* Исправление MIME типа для SVG файлов. */
+    function fix_svg_mime_type( $data, $file, $filename, $mimes, $real_mime = '' ){
+
+        /*  WP 5.1 + */
+        if( version_compare( $GLOBALS['wp_version'], '5.1.0', '>=' ) ){
+            $dosvg = in_array( $real_mime, [ 'image/svg', 'image/svg+xml' ] );
+        }
+        else {
+            $dosvg = ( '.svg' === strtolower( substr( $filename, -4 ) ) );
+        }
+
+        // mime тип был обнулен, поправим его
+        // а также проверим право пользователя
+        if( $dosvg ){
+
+            // разрешим
+            if( current_user_can('manage_options') ){
+
+                $data['ext']  = 'svg';
+                $data['type'] = 'image/svg+xml';
+            }
+            // запретим
+            else {
+                $data['ext']  = false;
+                $data['type'] = false;
+            }
+
+        }
+
+        return $data;
+    }
+
+    add_filter( 'wp_prepare_attachment_for_js', 'show_svg_in_media_library' );
+
+    /* Формирует данные для отображения SVG как изображения в медиабиблиотеке. */
+    function show_svg_in_media_library( $response ) {
+
+        if ( $response['mime'] === 'image/svg+xml' ) {
+
+            // С выводом названия файла
+            $response['image'] = [
+                'src' => $response['url'],
+            ];
+        }
+
+        return $response;
+    }
+
+    /************************ */
+    /* ПОДДОМЕНЫ / SUBDAMAINS */
     if (IS_enable_subdomain) {
-        
+
         /****************************************** */
         /* Содадим свои типы записей для поддоменов */
         add_action( 'init', 'subdomain_register_post_type_init' );
@@ -64,7 +128,7 @@
             }
             */
             $arDomain = get_avalable_domain();
-            
+
             $content = '';
             if (is_array($arDomain['www'])) {
                 $content = '<table border = "1" cellpadding="5">';
@@ -74,14 +138,14 @@
                 };
                 $content .= '</table>';
             };
-    
+
             // Массив параметров для первой вкладки
             $args = array(
                 'id'      => 'Domain_tab_1',
                 'title'   => 'Символьные коды',
                 'content' => '<h3>Символьные коды, которые можно применить в тексте и заголовках</h3>'.$content
             );
-         
+
             // Добавляем вкладку
             $screen->add_help_tab( $args );
         }
@@ -96,7 +160,7 @@
             if (is_array($domain[$domenparts[0]])) {
                 $cursubdomen = $domenparts[0];
             };
-            
+
             if (is_array($domain[$cursubdomen])) {
                 foreach ($domain[$cursubdomen] as $key=>$value) {
                     $text = str_replace('%domain_'.$key.'%', $value, $text);
@@ -140,7 +204,7 @@
                     $http .= 's';
                 };
                 $curdomen = $http.'://'.$curdomen.$_SERVER['REQUEST_URI'];
-                header('Location: '.$curdomen); 
+                header('Location: '.$curdomen);
                 die();
             };
         }
@@ -168,25 +232,26 @@
                 };
             };
             return $result;
-        }        
+        }
 
 
         function subdomain_buffer_start() {
             redirect_right();
             ob_start("set_domain_values");
         }
-            
+
         function subdomain_buffer_end() {
             ob_end_flush();
         }
 
         add_action('wp_head', 'subdomain_buffer_start');
-        add_action('wp_footer', 'subdomain_buffer_end');        
+        add_action('wp_footer', 'subdomain_buffer_end');
     }
 
 
 
-    
+    /************************ */
+    /* КАТАЛОГ / CATALOG */
     if (IS_enable_catalog) {
 
         /****************************************** */
@@ -240,24 +305,24 @@
                 };
             };
             is_catalog_page();
-        }        
-    }    
+        }
+    }
 
 
     /****** Показать потомков страницы ************
     * $attr=array(
-    *   'id' - id родителя 
-    *   'template' - шаблон файл в папке templates файл .php 
+    *   'id' - id родителя
+    *   'template' - шаблон файл в папке templates файл .php
     *                   в файле foreach для массива pages
     *   'numberposts' - кол-во постов/страниц, по умолчанию 999
     *   'orderby' - поле сортировки, по умолчанию menu_order
     *   'iscat' - если родитель это категория по ставим "Y", тогда найдет все записи в категории
     *   'post_type' - тип постов которые нам нужны, по умолчанию page
-    * 
+    *
     *   Использовать в страницах так
     *   [showChildren id=1 template="sidemenu"][/showChildren]
     */
-    add_shortcode( 'showChildren' , 'showChildren' );    
+    add_shortcode( 'showChildren' , 'showChildren' );
     function showChildren ( $attr ) {
         $result = '';
         if (is_numeric($attr['id'])) {
@@ -267,14 +332,14 @@
                 $template = 'pages';
             };
             $filter = array(
-                        'post_status' => 'publish', 
+                        'post_status' => 'publish',
                     );
             if (is_numeric($attr['numberposts'])) {
                 $filter['numberposts'] = $attr['numberposts'];
             } else {
                 $filter['numberposts'] = 999;
             };
-        
+
             if ($attr['orderby']!= '') {
                 $filter['orderby'] = $attr['orderby'];
             } else {
@@ -295,7 +360,7 @@
             } else {
                 $filter['post_type'] = 'page';
             };
-            
+
             $pages = get_posts($filter);
             ob_start();
             include('templates/'.$template.'.php');
@@ -304,10 +369,10 @@
         };
         return $result;
     };
-    
+
     /* Добавим менюшки */
     add_action( 'init', 'menu_type_init' );
-    function menu_type_init() {        
+    function menu_type_init() {
         register_nav_menus( array(
             'header_menu' => 'Меню в шапке',
             'footer_menu' => 'Меню в подвале',
