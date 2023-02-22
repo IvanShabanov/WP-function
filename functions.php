@@ -318,19 +318,21 @@
     *   'orderby' - поле сортировки, по умолчанию menu_order
     *   'iscat' - если родитель это категория по ставим "Y", тогда найдет все записи в категории
     *   'post_type' - тип постов которые нам нужны, по умолчанию page
+    *   'params' - дополнительные параметры шаблона в JSON
+    *
     *
     *   Использовать в страницах так
     *   [showChildren id=1 template="sidemenu"][/showChildren]
+    *   [showChildren ids="1,3,4,5" template="sidemenu"][/showChildren]
     */
     add_shortcode( 'showChildren' , 'showChildren' );
     function showChildren ( $attr ) {
         $result = '';
-        if (is_numeric($attr['id'])) {
-            $class = $attr['class'];
+        if (isset($attr['template'])) {
             $template = $attr['template'];
-            if ($template == '') {
-                $template = 'pages';
-            };
+        }
+        if (is_numeric($attr['id'])) {
+
             $filter = array(
                         'post_status' => 'publish',
                     );
@@ -340,35 +342,60 @@
                 $filter['numberposts'] = 999;
             };
 
-            if ($attr['orderby']!= '') {
+            if (isset($attr['orderby'])) {
                 $filter['orderby'] = $attr['orderby'];
             } else {
                 $filter['orderby'] = 'menu_order';
             };
-            if ($attr['order']!= '') {
+            if (isset($attr['order'])) {
                 $filter['order'] = 'DESC';
             } else {
                 $filter['order'] = 'ASC';
             };
-            if ($attr['iscat'] == 'Y') {
+            if (isset($attr['iscat'])) {
                 $filter['category'] = $attr['id'];
-              } else {
+                } else {
                 $filter['post_parent'] = $attr['id'];
             };
-            if ($attr['post_type'] != '') {
+            if (isset($attr['post_type'])) {
                 $filter['post_type'] = $attr['post_type'];
             } else {
                 $filter['post_type'] = 'page';
             };
 
             $pages = get_posts($filter);
+        };
+
+        if (isset($attr['ids'])) {
+            $ids = explode(',', $attr['ids']);
+            $pages = [];
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    if (is_numeric(trim($id))) {
+                        $page = get_post($id);
+                        if (!is_null($page)) {
+                            $pages[] = $page;
+                        }
+                    }
+                }
+            }
+        }
+        if (is_array($pages)) {
+
+            if (isset($attr['params'])) {
+                $params = @json_decode($attr['params'], true);
+                $attr['params'] = $params;
+            }
+
             ob_start();
             include('templates/'.$template.'.php');
             $result = ob_get_contents();
             ob_end_clean();
-        };
+        }
+
         return $result;
     };
+
 
     /* Добавим менюшки */
     add_action( 'init', 'menu_type_init' );
