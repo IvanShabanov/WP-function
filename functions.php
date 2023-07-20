@@ -1,6 +1,8 @@
 <?
     require_once 'config.php';
     require_once 'includes/seo.php';
+    require_once 'includes/showChildren.php';
+    require_once 'includes/buffer.php';
 
     /* default constants */
     if (!defined('IS_enable_subdomain')) {
@@ -90,7 +92,7 @@
         /* Содадим свои типы записей для поддоменов */
         add_action( 'init', 'subdomain_register_post_type_init' );
         function subdomain_register_post_type_init() {
-            /* Города */
+            /* Города\регионы */
             $labels = array(
                 'name' => 'Поддомены',
                 'singular_name' => 'Поддомен', // админ панель Добавить->Функцию
@@ -234,20 +236,9 @@
             return $result;
         }
 
-
-        function subdomain_buffer_start() {
-            redirect_right();
-            ob_start("set_domain_values");
-        }
-
-        function subdomain_buffer_end() {
-            ob_end_flush();
-        }
-
-        add_action('wp_head', 'subdomain_buffer_start');
-        add_action('wp_footer', 'subdomain_buffer_end');
+        add_buffer_start('redirect_right');
+        add_buffer_end('set_domain_values');
     }
-
 
 
     /************************ */
@@ -307,94 +298,6 @@
             is_catalog_page();
         }
     }
-
-
-    /****** Показать потомков страницы ************
-    * $attr=array(
-    *   'id' - id родителя
-    *   'template' - шаблон файл в папке templates файл .php
-    *                   в файле foreach для массива pages
-    *   'numberposts' - кол-во постов/страниц, по умолчанию 999
-    *   'orderby' - поле сортировки, по умолчанию menu_order
-    *   'iscat' - если родитель это категория по ставим "Y", тогда найдет все записи в категории
-    *   'post_type' - тип постов которые нам нужны, по умолчанию page
-    *   'params' - дополнительные параметры шаблона в JSON
-    *
-    *
-    *   Использовать в страницах так
-    *   [showChildren id=1 template="sidemenu"][/showChildren]
-    *   [showChildren ids="1,3,4,5" template="sidemenu"][/showChildren]
-    */
-    add_shortcode( 'showChildren' , 'showChildren' );
-    function showChildren ( $attr ) {
-        $result = '';
-        if (isset($attr['template'])) {
-            $template = $attr['template'];
-        }
-        if (is_numeric($attr['id'])) {
-
-            $filter = array(
-                        'post_status' => 'publish',
-                    );
-            if (is_numeric($attr['numberposts'])) {
-                $filter['numberposts'] = $attr['numberposts'];
-            } else {
-                $filter['numberposts'] = 999;
-            };
-
-            if (isset($attr['orderby'])) {
-                $filter['orderby'] = $attr['orderby'];
-            } else {
-                $filter['orderby'] = 'menu_order';
-            };
-            if (isset($attr['order'])) {
-                $filter['order'] = 'DESC';
-            } else {
-                $filter['order'] = 'ASC';
-            };
-            if (isset($attr['iscat'])) {
-                $filter['category'] = $attr['id'];
-                } else {
-                $filter['post_parent'] = $attr['id'];
-            };
-            if (isset($attr['post_type'])) {
-                $filter['post_type'] = $attr['post_type'];
-            } else {
-                $filter['post_type'] = 'page';
-            };
-
-            $pages = get_posts($filter);
-        };
-
-        if (isset($attr['ids'])) {
-            $ids = explode(',', $attr['ids']);
-            $pages = [];
-            if (is_array($ids)) {
-                foreach ($ids as $id) {
-                    if (is_numeric(trim($id))) {
-                        $page = get_post($id);
-                        if (!is_null($page)) {
-                            $pages[] = $page;
-                        }
-                    }
-                }
-            }
-        }
-        if (is_array($pages)) {
-
-            if (isset($attr['params'])) {
-                $params = @json_decode($attr['params'], true);
-                $attr['params'] = $params;
-            }
-
-            ob_start();
-            include('templates/'.$template.'.php');
-            $result = ob_get_contents();
-            ob_end_clean();
-        }
-
-        return $result;
-    };
 
 
     /* Добавим менюшки */
