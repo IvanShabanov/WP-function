@@ -107,7 +107,7 @@ function showChildren($attr)
 		}
 
 		ob_start();
-		@include('templates/' . $template . '.php');
+		@include(SHOW_CHILDREN_TEMPLATES_PATH . $template . '.php');
 		$result = ob_get_contents();
 		ob_end_clean();
 	}
