@@ -8,7 +8,7 @@
  *   'orderby' - поле сортировки, по умолчанию menu_order
  *   'iscat' - если родитель это категория по ставим "Y", тогда найдет все записи в категории
  *   'post_type' - тип постов которые нам нужны, по умолчанию page
- *
+ *	 'posts_per_page' -
  *   'ids' - строчка с id элементов через запятую
  *
  *   'params' - строчка json дополнительных параметров используемых в шаблоне,
@@ -59,6 +59,16 @@ function showChildren($attr)
 			$filter['post_type'] = $attr['post_type'];
 		} else {
 			$filter['post_type'] = 'page';
+		};
+
+		if (is_numeric($attr['posts_per_page'])) {
+			$total_items = count(get_posts($filter));
+			$max_pages = max(1, ceil($total_items / $attr['posts_per_page']));
+			$filter['posts_per_page'] = $attr['posts_per_page'];
+			$currentPage = (get_query_var('page')) ? get_query_var('page') : 1;
+			if ((is_numeric($currentPage)) && ($currentPage <= $max_pages)) {
+				$filter['offset'] = ($currentPage -1) * $filter['posts_per_page'];
+			}
 		};
 
 		$pages = get_posts($filter);
